@@ -143,6 +143,7 @@ template <typename T> struct string_slice {
         Always returns the same result as "memcmp(@a a, @a b, @a len) == 0",
         but can be faster on some machines. */
     static bool equals_sloppy(const char *a, const char *b, int len) {
+#if 0
 #if HAVE_UNALIGNED_ACCESS
         if (len <= size) {
             typename mass::make_unsigned<T>::type delta
@@ -156,6 +157,7 @@ template <typename T> struct string_slice {
             return (delta << (8 * (size - len))) == 0;
 # endif
         }
+#endif
 #endif
         return memcmp(a, b, len) == 0;
     }
