@@ -20,9 +20,9 @@
 namespace Masstree {
 
 template <typename P>
-bool tcursor<P>::find_insert(threadinfo& ti)
+PROMISE(bool) tcursor<P>::find_insert(threadinfo& ti)
 {
-    find_locked(ti);
+  AWAIT find_locked(ti);
     original_n_ = n_;
     original_v_ = n_->full_unlocked_version_value();
 
@@ -55,7 +55,7 @@ bool tcursor<P>::find_insert(threadinfo& ti)
     }
 
     // otherwise must split
-    return make_split(ti);
+    RETURN make_split(ti);
 }
 
 template <typename P>
