@@ -28,14 +28,14 @@ PROMISE(bool) tcursor<P>::find_insert(threadinfo& ti)
 
     // maybe we found it
     if (state_)
-        return true;
+      RETURN true;
 
     // otherwise mark as inserted but not present
     state_ = 2;
 
     // maybe we need a new layer
     if (kx_.p >= 0)
-        return make_new_layer(ti);
+        RETURN make_new_layer(ti);
 
     // mark insertion if we are changing modification state
     if (unlikely(n_->modstate_ != leaf<P>::modstate_insert)) {
@@ -50,7 +50,7 @@ PROMISE(bool) tcursor<P>::find_insert(threadinfo& ti)
         // don't inappropriately reuse position 0, which holds the ikey_bound
         if (likely(kx_.p != 0) || !n_->prev_ || n_->ikey_bound() == ka_.ikey()) {
             n_->assign(kx_.p, ka_, ti);
-            return false;
+            RETURN false;
         }
     }
 

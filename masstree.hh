@@ -18,6 +18,7 @@
 #include "compiler.hh"
 #include "str.hh"
 #include "ksearch.hh"
+#include "../../include/coro.h"
 
 namespace Masstree {
 using lcdf::Str;
@@ -73,7 +74,7 @@ class basic_table {
     inline node_type* root() const;
     inline node_type* fix_root();
 
-    bool get(Str key, value_type& value, threadinfo& ti) const;
+  PROMISE(bool) get(Str key, value_type& value, threadinfo& ti) const;
 
     template <typename F>
     int scan(Str firstkey, bool matchfirst, F& scanner, threadinfo& ti) const;
