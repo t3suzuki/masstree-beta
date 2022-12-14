@@ -60,7 +60,8 @@ class unlocked_tcursor {
           lv_(leafvalue<P>::make_empty()), root_(table.fix_root()) {
     }
 
-  PROMISE(bool) find_unlocked(threadinfo& ti);
+  bool find_unlocked(threadinfo& ti);
+  PROMISE(bool) find_unlocked_coro(threadinfo& ti);
 
     inline value_type value() const {
         return lv_.value();
@@ -152,8 +153,8 @@ class tcursor {
         return new_nodes_;
     }
 
-  inline PROMISE(bool) find_locked(threadinfo& ti);
-  inline PROMISE(bool) find_insert(threadinfo& ti);
+  inline bool find_locked(threadinfo& ti);
+  inline bool find_insert(threadinfo& ti);
 
     inline void finish(int answer, threadinfo& ti);
 

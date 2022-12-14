@@ -20,14 +20,51 @@
 namespace Masstree {
 
 template <typename P>
-PROMISE(bool) unlocked_tcursor<P>::find_unlocked(threadinfo& ti)
+bool unlocked_tcursor<P>::find_unlocked(threadinfo& ti)
 {
     int match;
     key_indexed_position kx;
     node_base<P>* root = const_cast<node_base<P>*>(root_);
 
  retry:
-    n_ = AWAIT root->reach_leaf(ka_, v_, ti);
+    n_ = root->reach_leaf(ka_, v_, ti);
+
+ forward:
+    if (v_.deleted())
+        goto retry;
+
+    n_->prefetch();
+    perm_ = n_->permutation();
+    kx = leaf<P>::bound_type::lower(ka_, *this);
+    if (kx.p >= 0) {
+        lv_ = n_->lv_[kx.p];
+        lv_.prefetch(n_->keylenx_[kx.p]);
+        match = n_->ksuf_matches(kx.p, ka_);
+    } else
+        match = 0;
+    if (n_->has_changed(v_)) {
+        ti.mark(threadcounter(tc_stable_leaf_insert + n_->simple_has_split(v_)));
+        n_ = n_->advance_to_key(ka_, v_, ti);
+        goto forward;
+    }
+
+    if (match < 0) {
+        ka_.shift_by(-match);
+        root = lv_.layer();
+        goto retry;
+    } else
+      return match;
+}
+
+template <typename P>
+PROMISE(bool) unlocked_tcursor<P>::find_unlocked_coro(threadinfo& ti)
+{
+    int match;
+    key_indexed_position kx;
+    node_base<P>* root = const_cast<node_base<P>*>(root_);
+
+ retry:
+    n_ = AWAIT root->reach_leaf_coro(ka_, v_, ti);
 
  forward:
     if (v_.deleted())
@@ -57,7 +94,7 @@ PROMISE(bool) unlocked_tcursor<P>::find_unlocked(threadinfo& ti)
     } else
       RETURN match;
 }
-
+  
 template <typename P>
 inline PROMISE(bool) basic_table<P>::get(Str key, value_type &value,
                                 threadinfo& ti) const
@@ -70,14 +107,14 @@ inline PROMISE(bool) basic_table<P>::get(Str key, value_type &value,
 }
 
 template <typename P>
-PROMISE(bool) tcursor<P>::find_locked(threadinfo& ti)
+bool tcursor<P>::find_locked(threadinfo& ti)
 {
     node_base<P>* root = const_cast<node_base<P>*>(root_);
     nodeversion_type v;
     permuter_type perm;
 
  retry:
-    n_ = AWAIT root->reach_leaf(ka_, v, ti);
+    n_ = root->reach_leaf(ka_, v, ti);
 
  forward:
     if (v.deleted())
@@ -115,7 +152,7 @@ PROMISE(bool) tcursor<P>::find_locked(threadinfo& ti)
         root = const_cast<node_base<P>*>(root_);
         goto retry;
     }
-    RETURN state_;
+    return state_;
 }
 
 } // namespace Masstree
