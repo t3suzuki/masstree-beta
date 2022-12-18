@@ -70,7 +70,7 @@ PROMISE(bool) unlocked_tcursor<P>::find_unlocked_coro(threadinfo& ti)
     if (v_.deleted())
         goto retry;
 
-    n_->prefetch();
+    n_->prefetchRem();
     SUSPEND;
     perm_ = n_->permutation();
     kx = leaf<P>::bound_type::lower(ka_, *this);
