@@ -154,6 +154,11 @@ class internode : public node_base<P> {
             ::prefetch((const char *) this + i);
     }
 
+    void prefetch256B() const {
+        for (int i = 0; i < 4 * 64; i += 64)
+            ::prefetch((const char *) this + i);
+    }
+  
     void print(FILE* f, const char* prefix, int depth, int kdepth) const;
 
     void deallocate(threadinfo& ti) {
@@ -269,8 +274,7 @@ class leaf : public node_base<P> {
     };
 
     int8_t extrasize64_;
-    uint8_t modstate_;
-    uint8_t keylenx_[width];
+    uint8_t modstate_;    uint8_t keylenx_[width];
     typename permuter_type::storage_type permutation_;
     ikey_type ikey0_[width];
     leafvalue_type lv_[width];
@@ -464,6 +468,14 @@ class leaf : public node_base<P> {
         }
     }
 
+    void prefetchRem() const {
+        ::prefetch((const char *) this + 4*64);
+        if (extrasize64_ < 0) {
+            ::prefetch((const char *) ksuf_);
+            ::prefetch((const char *) ksuf_ + CACHE_LINE_SIZE);
+        }
+    }
+  
     void print(FILE* f, const char* prefix, int depth, int kdepth) const;
 
     leaf<P>* safe_next() const {
@@ -677,6 +689,11 @@ inline PROMISE(leaf<P>*) node_base<P>::reach_leaf_coro(const key_type& ka,
     sense = false;
     n[sense] = this;
     while (1) {
+#if 1 // t3suzuki
+        const internode<P> *in = static_cast<const internode<P>*>(n[sense]);
+        in->prefetch256B();
+	SUSPEND;
+#endif
         v[sense] = n[sense]->stable_annotated(ti.stable_fence());
         if (v[sense].is_root())
             break;
@@ -687,12 +704,19 @@ inline PROMISE(leaf<P>*) node_base<P>::reach_leaf_coro(const key_type& ka,
     // Loop over internal nodes.
     while (!v[sense].isleaf()) {
         const internode<P> *in = static_cast<const internode<P>*>(n[sense]);
+#if 0 // t3suzuki
         in->prefetch();
 	SUSPEND;
+#endif
         int kp = internode<P>::bound_type::upper(ka, *in);
         n[!sense] = in->child_[kp];
         if (!n[!sense])
             goto retry;
+#if 1 // t3suzuki
+        const internode<P> *cin = static_cast<const internode<P>*>(n[!sense]);
+        cin->prefetch256B();
+	SUSPEND;
+#endif
         v[!sense] = n[!sense]->stable_annotated(ti.stable_fence());
 
         if (likely(!in->has_changed(v[sense]))) {
