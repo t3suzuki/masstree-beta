@@ -155,7 +155,9 @@ class tcursor {
     }
 
   inline bool find_locked(threadinfo& ti);
+  inline PROMISE(bool) find_locked_coro(threadinfo& ti);
   inline bool find_insert(threadinfo& ti);
+  inline PROMISE(bool) find_insert_coro(threadinfo& ti);
 
     inline void finish(int answer, threadinfo& ti);
 

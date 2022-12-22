@@ -194,5 +194,56 @@ bool tcursor<P>::find_locked(threadinfo& ti)
     return state_;
 }
 
+template <typename P>
+PROMISE(bool) tcursor<P>::find_locked_coro(threadinfo& ti)
+{
+    node_base<P>* root = const_cast<node_base<P>*>(root_);
+    nodeversion_type v;
+    permuter_type perm;
+
+ retry:
+    n_ = AWAIT root->reach_leaf_coro(ka_, v, ti);
+
+ forward:
+    if (v.deleted())
+        goto retry;
+
+    n_->prefetchRem();
+    SUSPEND;
+    perm = n_->permutation();
+    fence();
+    kx_ = leaf<P>::bound_type::lower(ka_, *n_);
+    if (kx_.p >= 0) {
+        leafvalue<P> lv = n_->lv_[kx_.p];
+        lv.prefetch(n_->keylenx_[kx_.p]);
+	SUSPEND;
+        state_ = n_->ksuf_matches(kx_.p, ka_);
+        if (state_ < 0 && !n_->has_changed(v) && lv.layer()->is_root()) {
+            ka_.shift_by(-state_);
+            root = lv.layer();
+            goto retry;
+        }
+    } else
+        state_ = 0;
+
+    n_->lock(v, ti.lock_fence(tc_leaf_lock));
+    if (n_->has_changed(v) || n_->permutation() != perm) {
+        ti.mark(threadcounter(tc_stable_leaf_insert + n_->simple_has_split(v)));
+        n_->unlock();
+        n_ = n_->advance_to_key(ka_, v, ti);
+        goto forward;
+    } else if (unlikely(state_ < 0)) {
+        ka_.shift_by(-state_);
+        n_->lv_[kx_.p] = root = n_->lv_[kx_.p].layer()->maybe_parent();
+        n_->unlock();
+        goto retry;
+    } else if (unlikely(n_->deleted_layer())) {
+        ka_.unshift_all();
+        root = const_cast<node_base<P>*>(root_);
+        goto retry;
+    }
+    RETURN state_;
+}
+  
 } // namespace Masstree
 #endif
