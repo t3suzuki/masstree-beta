@@ -109,7 +109,7 @@ PILO_PROMISE(bool) unlocked_tcursor<P>::find_unlocked_pilo(threadinfo& ti)
     if (v_.deleted())
         goto retry;
 
-    n_->prefetch();
+    n_->prefetchRem();
     PILO_SUSPEND;
     perm_ = n_->permutation();
     kx = leaf<P>::bound_type::lower(ka_, *this);

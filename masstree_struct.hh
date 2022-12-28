@@ -112,7 +112,8 @@ class internode : public node_base<P> {
     typedef typename P::threadinfo_type threadinfo;
 
     uint8_t nkeys_;
-    uint32_t height_;
+  //uint32_t height_;
+  uint16_t height_;
     ikey_type ikey0_[width];
     node_base<P>* child_[width + 1];
     node_base<P>* parent_;
@@ -756,6 +757,11 @@ inline PILO_PROMISE(leaf<P>*) node_base<P>::reach_leaf_pilo(const key_type& ka,
     sense = false;
     n[sense] = this;
     while (1) {
+#if 1 // t3suzuki
+        const internode<P> *in = static_cast<const internode<P>*>(n[sense]);
+        in->prefetch256B();
+	PILO_SUSPEND;
+#endif
         v[sense] = n[sense]->stable_annotated(ti.stable_fence());
         if (v[sense].is_root())
             break;
@@ -766,12 +772,19 @@ inline PILO_PROMISE(leaf<P>*) node_base<P>::reach_leaf_pilo(const key_type& ka,
     // Loop over internal nodes.
     while (!v[sense].isleaf()) {
         const internode<P> *in = static_cast<const internode<P>*>(n[sense]);
+#if 0 // t3suzuki
         in->prefetch();
 	PILO_SUSPEND;
+#endif
         int kp = internode<P>::bound_type::upper(ka, *in);
         n[!sense] = in->child_[kp];
         if (!n[!sense])
             goto retry;
+#if 1 // t3suzuki
+        const internode<P> *cin = static_cast<const internode<P>*>(n[!sense]);
+        cin->prefetch256B();
+	PILO_SUSPEND;
+#endif
         v[!sense] = n[!sense]->stable_annotated(ti.stable_fence());
 
         if (likely(!in->has_changed(v[sense]))) {
