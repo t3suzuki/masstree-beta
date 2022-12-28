@@ -692,7 +692,7 @@ inline PROMISE(leaf<P>*) node_base<P>::reach_leaf_coro(const key_type& ka,
     sense = false;
     n[sense] = this;
     while (1) {
-#if 1 // t3suzuki
+#if 0 // t3suzuki
         const internode<P> *in = static_cast<const internode<P>*>(n[sense]);
         in->prefetch256B();
 	SUSPEND;
@@ -757,7 +757,7 @@ inline PILO_PROMISE(leaf<P>*) node_base<P>::reach_leaf_pilo(const key_type& ka,
     sense = false;
     n[sense] = this;
     while (1) {
-#if 1 // t3suzuki
+#if 0 // t3suzuki
         const internode<P> *in = static_cast<const internode<P>*>(n[sense]);
         in->prefetch256B();
 	PILO_SUSPEND;
