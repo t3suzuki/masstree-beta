@@ -81,7 +81,7 @@ class unlocked_tcursor {
         return (v_.version_value() << leaf<P>::permuter_type::size_bits) + perm_.size();
     }
 
-  private:
+public:
     leaf<P>* n_;
     key_type ka_;
     typename leaf<P>::nodeversion_type v_;
@@ -164,7 +164,7 @@ class tcursor {
     inline nodeversion_value_type previous_full_version_value() const;
     inline nodeversion_value_type next_full_version_value(int state) const;
 
-  private:
+public:
     leaf_type *n_;
     key_type ka_;
     key_indexed_position kx_;
