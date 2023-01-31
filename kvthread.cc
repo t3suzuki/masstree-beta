@@ -189,6 +189,9 @@ static void initialize_pool(void* pool, size_t sz, size_t unit) {
     *nextptr = 0;
 }
 
+void *dax_malloc(size_t sz);
+extern bool dax_enabled;
+
 void threadinfo::refill_pool(int nl) {
     assert(!pool_[nl - 1]);
 
@@ -203,11 +206,16 @@ void threadinfo::refill_pool(int nl) {
     size_t pool_size = 0;
     int r;
 
+    
 #if HAVE_SUPERPAGE && !NOSUPERPAGE
     if (!superpage_size)
         superpage_size = read_superpage_size();
     if (superpage_size != (size_t) -1) {
         pool_size = superpage_size;
+
+	if (dax_enabled) {
+	  pool = dax_malloc(pool_size);
+	} else {
 # if MADV_HUGEPAGE
         if ((r = posix_memalign(&pool, pool_size, pool_size)) != 0) {
             fprintf(stderr, "posix_memalign superpage: %s\n", strerror(r));
@@ -228,6 +236,7 @@ void threadinfo::refill_pool(int nl) {
 # else
         superpage_size = (size_t) -1;
 # endif
+	}
     }
 #endif
 
