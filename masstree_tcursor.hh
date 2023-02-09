@@ -62,7 +62,7 @@ class unlocked_tcursor {
 
   bool find_unlocked(threadinfo& ti);
   PROMISE(bool) find_unlocked_coro(threadinfo& ti);
-  PILO_PROMISE(bool) find_unlocked_pilo(threadinfo& ti);
+  PTX_PROMISE(bool) find_unlocked_ptx(threadinfo& ti);
 
     inline value_type value() const {
         return lv_.value();

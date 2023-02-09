@@ -96,27 +96,27 @@ PROMISE(bool) unlocked_tcursor<P>::find_unlocked_coro(threadinfo& ti)
 }
 
 template <typename P>
-PILO_PROMISE(bool) unlocked_tcursor<P>::find_unlocked_pilo(threadinfo& ti)
+PTX_PROMISE(bool) unlocked_tcursor<P>::find_unlocked_ptx(threadinfo& ti)
 {
     int match;
     key_indexed_position kx;
     node_base<P>* root = const_cast<node_base<P>*>(root_);
 
  retry:
-    n_ = PILO_AWAIT root->reach_leaf_pilo(ka_, v_, ti);
+    n_ = PTX_AWAIT root->reach_leaf_ptx(ka_, v_, ti);
 
  forward:
     if (v_.deleted())
         goto retry;
 
     n_->prefetchRem();
-    PILO_SUSPEND;
+    PTX_SUSPEND;
     perm_ = n_->permutation();
     kx = leaf<P>::bound_type::lower(ka_, *this);
     if (kx.p >= 0) {
         lv_ = n_->lv_[kx.p];
         lv_.prefetch(n_->keylenx_[kx.p]);
-	PILO_SUSPEND;
+	PTX_SUSPEND;
         match = n_->ksuf_matches(kx.p, ka_);
     } else
         match = 0;
@@ -131,7 +131,7 @@ PILO_PROMISE(bool) unlocked_tcursor<P>::find_unlocked_pilo(threadinfo& ti)
         root = lv_.layer();
         goto retry;
     } else
-      PILO_RETURN match;
+      PTX_RETURN match;
 }
   
 template <typename P>

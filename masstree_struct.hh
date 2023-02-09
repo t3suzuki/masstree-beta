@@ -90,7 +90,7 @@ class node_base : public make_nodeversion<P>::type {
                                  threadinfo& ti) const;
   inline PROMISE(leaf_type*) reach_leaf_coro(const key_type& k, nodeversion_type& version,
                                  threadinfo& ti) const;
-  inline PILO_PROMISE(leaf_type*) reach_leaf_pilo(const key_type& k, nodeversion_type& version,
+  inline PTX_PROMISE(leaf_type*) reach_leaf_ptx(const key_type& k, nodeversion_type& version,
 						  threadinfo& ti) const;
 
     void prefetch_full() const {
@@ -742,9 +742,9 @@ inline PROMISE(leaf<P>*) node_base<P>::reach_leaf_coro(const key_type& ka,
 }
 
 template <typename P>
-inline PILO_PROMISE(leaf<P>*) node_base<P>::reach_leaf_pilo(const key_type& ka,
-							    nodeversion_type& version,
-							    threadinfo& ti) const
+inline PTX_PROMISE(leaf<P>*) node_base<P>::reach_leaf_ptx(const key_type& ka,
+							  nodeversion_type& version,
+							  threadinfo& ti) const
 {
     const node_base<P> *n[2];
     typename node_base<P>::nodeversion_type v[2];
@@ -760,7 +760,7 @@ inline PILO_PROMISE(leaf<P>*) node_base<P>::reach_leaf_pilo(const key_type& ka,
 #if 0 // t3suzuki
         const internode<P> *in = static_cast<const internode<P>*>(n[sense]);
         in->prefetch256B();
-	PILO_SUSPEND;
+	PTX_SUSPEND;
 #endif
         v[sense] = n[sense]->stable_annotated(ti.stable_fence());
         if (v[sense].is_root())
@@ -774,7 +774,7 @@ inline PILO_PROMISE(leaf<P>*) node_base<P>::reach_leaf_pilo(const key_type& ka,
         const internode<P> *in = static_cast<const internode<P>*>(n[sense]);
 #if 0 // t3suzuki
         in->prefetch();
-	PILO_SUSPEND;
+	PTX_SUSPEND;
 #endif
         int kp = internode<P>::bound_type::upper(ka, *in);
         n[!sense] = in->child_[kp];
@@ -783,7 +783,7 @@ inline PILO_PROMISE(leaf<P>*) node_base<P>::reach_leaf_pilo(const key_type& ka,
 #if 1 // t3suzuki
         const internode<P> *cin = static_cast<const internode<P>*>(n[!sense]);
         cin->prefetch256B();
-	PILO_SUSPEND;
+	PTX_SUSPEND;
 #endif
         v[!sense] = n[!sense]->stable_annotated(ti.stable_fence());
 
@@ -803,7 +803,7 @@ inline PILO_PROMISE(leaf<P>*) node_base<P>::reach_leaf_pilo(const key_type& ka,
     }
 
     version = v[sense];
-    PILO_RETURN const_cast<leaf<P> *>(static_cast<const leaf<P> *>(n[sense]));
+    PTX_RETURN const_cast<leaf<P> *>(static_cast<const leaf<P> *>(n[sense]));
 }
 
 /** @brief Return the leaf at or after *this responsible for @a ka.
