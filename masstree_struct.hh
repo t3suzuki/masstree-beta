@@ -21,6 +21,7 @@
 #include "mtcounters.hh"
 #include "timestamp.hh"
 #include "../../include/coro.h"
+#include "../../masstree_fanout.h"
 namespace Masstree {
 
 template <typename P>
@@ -94,7 +95,7 @@ class node_base : public make_nodeversion<P>::type {
 						  threadinfo& ti) const;
 
     void prefetch_full() const {
-        for (int i = 0; i < std::min(16 * std::min(P::leaf_width, P::internode_width) + 1, 4 * 64); i += 64)
+        for (int i = 0; i < std::min(16 * std::min(P::leaf_width, P::internode_width) + 1, MASSTREE_PREFETCH_COUNT * 64); i += 64)
             ::prefetch((const char *) this + i);
     }
 
@@ -153,12 +154,12 @@ class internode : public node_base<P> {
                                        threadinfo& ti) const;
 
     void prefetch() const {
-        for (int i = 64; i < std::min(16 * width + 1, 4 * 64); i += 64)
+        for (int i = 64; i < std::min(16 * width + 1, MASSTREE_PREFETCH_COUNT * 64); i += 64)
             ::prefetch((const char *) this + i);
     }
 
     void prefetch256B() const {
-        for (int i = 0; i < 4 * 64; i += 64)
+        for (int i = 0; i < MASSTREE_PREFETCH_COUNT * 64; i += 64)
             ::prefetch((const char *) this + i);
     }
   
@@ -461,7 +462,7 @@ class leaf : public node_base<P> {
     }
 
     void prefetch() const {
-        for (int i = 64; i < std::min(16 * width + 1, 4 * 64); i += 64)
+        for (int i = 64; i < std::min(16 * width + 1, MASSTREE_PREFETCH_COUNT * 64); i += 64)
             ::prefetch((const char *) this + i);
         if (extrasize64_ > 0)
             ::prefetch((const char *) &iksuf_[0]);
@@ -472,7 +473,7 @@ class leaf : public node_base<P> {
     }
 
     void prefetchRem() const {
-        ::prefetch((const char *) this + 4*64);
+        ::prefetch((const char *) this + MASSTREE_PREFETCH_COUNT*64);
         if (extrasize64_ < 0) {
             ::prefetch((const char *) ksuf_);
             ::prefetch((const char *) ksuf_ + CACHE_LINE_SIZE);
